@@ -3,6 +3,7 @@ import os
 from ckeditor.views import create_thumbnail, get_image_files, \
         get_thumb_filename
 from django.core.management.base import NoArgsCommand
+from django.core.files.storage import default_storage
 
 
 class Command(NoArgsCommand):
@@ -12,7 +13,7 @@ class Command(NoArgsCommand):
     """
     def handle_noargs(self, **options):
         for image in get_image_files():
-            if not os.path.isfile(get_thumb_filename(image)):
+            if not default_storage.exists(get_thumb_filename(image)):
                 print "Creating thumbnail for %s" % image
                 try:
                     create_thumbnail(image)

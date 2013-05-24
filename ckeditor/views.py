@@ -11,6 +11,7 @@ from django.core.files.uploadedfile import InMemoryUploadedFile
 from django.http import HttpResponse
 from django.shortcuts import render_to_response
 from django.template import RequestContext
+from django.utils.importlib import import_module
 
 try:
     from PIL import Image, ImageOps
@@ -28,6 +29,28 @@ except ImportError:
 
 THUMBNAIL_SIZE = (75, 75)
 
+import logging
+logger = logging.getLogger(__name__)
+
+
+def get_user_folder_function():
+    """
+    Imports and returns user folder defining function from settings.py or a default function.
+    """
+    userdefined_function = getattr(settings, 'CKEDITOR_GET_USERDIR', None)
+    if not userdefined_function:
+        return lambda u: ''
+    path = userdefined_function.split('.')
+    try:
+        resolver = import_module(path[0])
+        for part_path in path[1:]:
+            resolver = getattr(resolver, part_path)
+        return resolver
+    except (AttributeError, ImportError) as e:
+        raise ValueError("Could not find CKEDITOR_GET_USER_DIR function: {0}\nError: {1}".format(userdefined_function, e))
+
+
+get_user_folder = get_user_folder_function()
 
 def get_available_name(name):
     """
@@ -87,23 +110,24 @@ def get_media_url(path):
     """
     Determine system file's media URL.
     """
-    return default_storage.url(path)
+    upload_prefix = getattr(settings, "CKEDITOR_UPLOAD_PREFIX", None)
+    if upload_prefix:
+        url = upload_prefix + path.replace(settings.CKEDITOR_UPLOAD_PATH, '')
+    else:
+        url = settings.MEDIA_URL + path.replace(settings.MEDIA_ROOT, '')
+    # Remove multiple forward-slashes from the path portion of the url.
+    # Break url into a list.
+    url_parts = list(urlparse(url))
+    # Replace two or more slashes with a single slash.
+    url_parts[2] = re.sub('\/+', '/', url_parts[2])
+    # Reconstruct the url.
+    url = urlunparse(url_parts)
+    return url
 
 
 def get_upload_filename(upload_name, user):
-    # If CKEDITOR_RESTRICT_BY_USER is True upload file to user specific path.
-    if getattr(settings, 'CKEDITOR_RESTRICT_BY_USER', False):
-        user_path = user.username
-    else:
-        user_path = ''
-
-    # Generate date based path to put uploaded file.
-    date_path = datetime.now().strftime('%Y/%m/%d')
-
-    # Complete upload path (upload_path + date_path).
-    upload_path = os.path.join(settings.CKEDITOR_UPLOAD_PATH, user_path, \
-            date_path)
-
+    user_path = get_user_folder(user)
+    upload_path = os.path.join(settings.CKEDITOR_UPLOAD_PATH, user_path)
     return get_available_name(os.path.join(upload_path, upload_name))
 
 
@@ -143,11 +167,7 @@ def get_image_files(user=None, path=''):
     STORAGE_DIRECTORIES = 0
     STORAGE_FILES = 1
 
-    if user and not user.is_superuser and getattr(settings, \
-            'CKEDITOR_RESTRICT_BY_USER', False):
-        user_path = user.username
-    else:
-        user_path = ''
+    user_path = get_user_folder(user) if user else ''
 
     browse_path = os.path.join(settings.CKEDITOR_UPLOAD_PATH, user_path, path)
 
@@ -165,7 +185,9 @@ def get_image_files(user=None, path=''):
         yield filename
 
     for directory in storage_list[STORAGE_DIRECTORIES]:
-        directory_path = os.path.join(path, directory)
+        logger.info(directory)
+        directory_path = os.path.join(user_path, directory)
+        logger.info(directory_path)
         for element in get_image_files(path=directory_path):
             yield element
 
@@ -187,6 +209,7 @@ def get_image_browse_urls(user=None):
 
 def browse(request):
     context = RequestContext(request, {
+        'CKEDITOR_MEDIA_PREFIX': settings.CKEDITOR_MEDIA_PREFIX,
         'images': get_image_browse_urls(request.user),
     })
     return render_to_response('browse.html', context)
