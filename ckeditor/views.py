@@ -188,12 +188,12 @@ def get_image_files(user=None, path=''):
 
     for directory in storage_list[STORAGE_DIRECTORIES]:
         directory_path = os.path.join(path, directory)
-        for element in get_image_files(path=directory_path):
+        for element in get_image_files(user, directory_path):
             yield element
 
 
 def get_image_browse_urls(user=None):
-    """
+    """user
     Recursively walks all dirs under upload dir and generates a list of
     thumbnail and full image URL's for each file found.
     """
