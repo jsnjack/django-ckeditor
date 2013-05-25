@@ -39,7 +39,7 @@ def get_user_folder_function():
     """
     userdefined_function = getattr(settings, 'CKEDITOR_GET_USERDIR', None)
     if not userdefined_function:
-        return lambda u: ''
+        return lambda u: u.id
     path = userdefined_function.split('.')
     try:
         resolver = import_module(path[0])
@@ -187,9 +187,7 @@ def get_image_files(user=None, path=''):
         yield filename
 
     for directory in storage_list[STORAGE_DIRECTORIES]:
-        logger.info(directory)
-        directory_path = os.path.join(user_path, directory)
-        logger.info(directory_path)
+        directory_path = os.path.join(path, directory)
         for element in get_image_files(path=directory_path):
             yield element
 
