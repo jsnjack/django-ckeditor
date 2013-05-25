@@ -108,8 +108,10 @@ def create_thumbnail(filename):
 
 def get_media_url(path):
     """
-    Determine system file's media URL.
+    Determine system file's media URL. Don't trust filesystem storage.
     """
+    if not settings.DEFAULT_FILE_STORAGE == 'django.core.files.storage.FileSystemStorage':
+        return default_storage.url(path)
     upload_prefix = getattr(settings, "CKEDITOR_UPLOAD_PREFIX", None)
     if upload_prefix:
         url = upload_prefix + path.replace(settings.CKEDITOR_UPLOAD_PATH, '')
