@@ -40,12 +40,10 @@ def get_user_folder_function():
     userdefined_function = getattr(settings, 'CKEDITOR_GET_USERDIR', None)
     if not userdefined_function:
         return lambda u: u.id
-    path = userdefined_function.split('.')
+    module, func_name = userdefined_function.rsplit('.', 1)
     try:
-        resolver = import_module(path[0])
-        for part_path in path[1:]:
-            resolver = getattr(resolver, part_path)
-        return resolver
+        module = import_module(module)
+        return getattr(module, func_name)
     except (AttributeError, ImportError) as e:
         raise ValueError("Could not find CKEDITOR_GET_USER_DIR function: {0}\nError: {1}".format(userdefined_function, e))
 
