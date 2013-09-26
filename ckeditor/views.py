@@ -4,6 +4,7 @@ import os
 import re
 import StringIO
 from urlparse import urlparse, urlunparse
+from heapq import heappop, heappush
 
 from django.conf import settings
 from django.core.files.storage import default_storage
@@ -228,7 +229,7 @@ def browse(request):
     context = RequestContext(request, {
         'CKEDITOR_MEDIA_PREFIX': settings.CKEDITOR_MEDIA_PREFIX,
         'images': get_image_browse_urls(request.user, order_dates, order_titles),
-        'date_order': date_order or 'ascending',
+        'date_order': date_order or 'descending',
         'title_order': title_order or 'ascending',
     })
     return render_to_response('browse.html', context)
