@@ -1,10 +1,8 @@
-from datetime import datetime
 import mimetypes
 import os
 import re
 import StringIO
 from urlparse import urlparse, urlunparse
-from heapq import heappop, heappush
 
 from django.conf import settings
 from django.core.files.storage import default_storage
@@ -196,20 +194,22 @@ def get_image_browse_urls(user=None, order_dates=0, order_titles=0):
     Recursively walks all dirs under upload dir and generates a list of
     thumbnail and full image URL's for each file found.
     """
-    def _get_heap_key(filename):
+    def _get_key(image):
         if order_titles:
-            return os.path.basename(filename)
-        return default_storage.modified_time(filename)
+            return image['title']
+        return default_storage.modified_time(image['src'])
 
     images = []
     for filename in get_image_files(user=user):
-        heappush(images, (_get_heap_key(filename), {
-            'thumb': get_media_url(get_thumb_filename(filename)),
-            'src': get_media_url(filename)
-        }))
-    images = [heappop(images)[1] for i in xrange(len(images))]
-    if order_dates < 0 or order_titles < 0:
-        images = images[::-1]
+        images.append({
+            'src': filename,
+            'title': os.path.basename(filename),
+        })
+    if order_dates or order_titles:
+        images.sort(key=_get_key, reverse=(order_dates < 0 or order_titles < 0))
+    for image in images:
+        image['thumb'] = get_media_url(get_thumb_filename(image['src']))
+        image['src'] = get_media_url(image['src'])
     return images
 
 
@@ -230,6 +230,6 @@ def browse(request):
         'CKEDITOR_MEDIA_PREFIX': settings.CKEDITOR_MEDIA_PREFIX,
         'images': get_image_browse_urls(request.user, order_dates, order_titles),
         'date_order': date_order or 'descending',
-        'title_order': title_order or 'ascending',
+        'title_order': title_order or 'descending',
     })
     return render_to_response('browse.html', context)
