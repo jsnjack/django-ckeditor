@@ -149,3 +149,9 @@ div.pagination span.ellipsis {
 	border: none;
 	padding: 5px 0 3px 2px;
 }
+
+.ascending .ascending, .descending .descending {display: none;}
+#filter-bottons input{
+    float: left;
+    margin: 20px;
+}

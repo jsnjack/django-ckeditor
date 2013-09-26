@@ -190,24 +190,45 @@ def get_image_files(user=None, path=''):
             yield element
 
 
-def get_image_browse_urls(user=None):
+def get_image_browse_urls(user=None, order_dates=0, order_titles=0):
     """user
     Recursively walks all dirs under upload dir and generates a list of
     thumbnail and full image URL's for each file found.
     """
+    def _get_heap_key(filename):
+        if order_titles:
+            return os.path.basename(filename)
+        return default_storage.modified_time(filename)
+
     images = []
     for filename in get_image_files(user=user):
-        images.append({
+        heappush(images, (_get_heap_key(filename), {
             'thumb': get_media_url(get_thumb_filename(filename)),
             'src': get_media_url(filename)
-        })
-
+        }))
+    images = [heappop(images)[1] for i in xrange(len(images))]
+    if order_dates < 0 or order_titles < 0:
+        images = images[::-1]
     return images
 
 
 def browse(request):
+    order_dates = order_titles = 0
+    date_order = request.GET.get('date_order')
+    title_order = request.GET.get('title_order')
+    if date_order == 'ascending':
+        order_dates = 1
+    elif date_order == 'descending':
+        order_dates = -1
+    if title_order == 'ascending':
+        order_titles = 1
+    elif title_order == 'descending':
+        order_titles = -1
+    logger.info((date_order, title_order))
     context = RequestContext(request, {
         'CKEDITOR_MEDIA_PREFIX': settings.CKEDITOR_MEDIA_PREFIX,
-        'images': get_image_browse_urls(request.user),
+        'images': get_image_browse_urls(request.user, order_dates, order_titles),
+        'date_order': date_order or 'ascending',
+        'title_order': title_order or 'ascending',
     })
     return render_to_response('browse.html', context)

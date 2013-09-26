@@ -46,6 +46,28 @@
                         {% endfor %}
 					</ul>
 				</div>
+                <div id="filter-bottons">
+                    <div class="{{ date_order }}">
+                        <form action="." method="GET">
+                            <input type="hidden" value="descending" name="date_order" />
+                            <input type="submit" class="date-filter descending default" value="New images first" />
+                        </form>
+                        <form action="." method="GET">
+                            <input type="hidden" value="ascending" name="date_order" />
+                            <input type="submit" class="date-filter ascending default" value="Old images first" />
+                        </form>
+                    </div>
+                    <div class="{{ title_order }}">
+                        <form action="." method="GET">
+                            <input type="hidden" value="ascending" name="title_order" />
+                            <input type="submit" class="name-filter ascending  default" value="A -> Z" />
+                        </form>
+                        <form action="." method="GET">
+                            <input type="hidden" value="descending" name="title_order" />
+                            <input type="submit" class="name-filter descending default" value="Z -> A" />
+                        </form>
+                    </div>
+                </div>
 				<div style="clear: both;"></div>
 			</div>
 		</div>
@@ -80,7 +102,7 @@
             // galleriffic
 			jQuery(document).ready(function($) {
 				// We only want these styles applied when javascript is enabled
-				$('div.navigation').css({'width' : '300px', 'float' : 'left'});
+				$('div.navigation').css({'width' : '320px', 'float' : 'left'});
 				$('div.content').css('display', 'block');
 
 				// Initially set opacity on thumbs and add
